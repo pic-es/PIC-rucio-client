@@ -7,7 +7,6 @@ apt install python3-pip
 
 pip install virtualenv
 python3 -m venv rucio
-# virtualenv rucio
 
 source rucio/bin/activate
 
