@@ -16,7 +16,7 @@ pip install -r PIC-rucio-client/requirements.txt
 
 pip install -Iv rucio-clients==1.23.11
 
-cp Config/rucio.cfg rucio/etc
+cp Configs/rucio.cfg rucio/etc
 
 export RUCIO_HOME=`pwd`/rucio/
 
