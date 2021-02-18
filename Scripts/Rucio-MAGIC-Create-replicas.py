@@ -365,6 +365,27 @@ for rses in rses_catch:
     for x in range(len(all_path)) :
         path = all_path[x]
         
+        import time
+        from datetime import date 
+
+        try:
+            date = re.search('\d{4}_\d{2}_\d{2}', path)
+            date = datetime.strptime(date.group(), '%Y_%m_%d').date()
+            date = date.strftime('%Y_%m_%d')
+            today = str(time.strftime('%Y_%m_%d'))
+            path = os.path.join('/',path.replace(date, today))
+        except: 
+            pass
+        try:
+            base, name = os.path.split(path)  
+            file_name = re.split(r'[`\-=~!@#$%^&*()_+\[\]{};\'\\:"|<,./<>?]', name)
+            date = datetime.strptime(file_name[0], "%Y%m%d").date()
+            date = date.strftime('%Y%m%d') 
+            today = str(time.strftime('%Y%m%d'))
+            path = os.path.join('/',path.replace(date, today))
+        except:
+            pass
+        
         try :
             path = make_folder_file(path, rses)
 
