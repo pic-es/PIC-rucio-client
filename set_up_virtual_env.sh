@@ -10,8 +10,6 @@ python3 -m venv rucio
 
 source rucio/bin/activate
 
-git clone https://github.com/pic-es/PIC-rucio-client.git
-
 pip install -r PIC-rucio-client/requirements.txt
 
 pip install -Iv rucio-clients==1.23.11
