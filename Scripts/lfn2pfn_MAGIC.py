@@ -90,6 +90,40 @@ def look_for_sources(path) :
         
     return(str(file_name))
 
+def get_datatype(fileName):
+
+    patterns_1 = ['RAW', 'Calibrated', 'Calibrated', 'Star', 'SuperStar', 'Melibea']
+    matching_1 = [s for s in patterns_1 if s in fileName]
+    if matching_1 :
+        return(str(matching_1))
+    
+def get_telescope(fileName):
+    patterns_1 = ['M1', 'M2', 'ST']
+    matching_1 = [s for s in patterns_1 if s in fileName]
+    if matching_1 :
+        return(str(matching_1[0]))
+    
+def get_source(path):
+    base, file_name = os.path.split(path)
+    run = str(look_for_run(file_name))
+
+    file_name = re.findall(r'[A-Z]_([^"]*)-W', file_name)
+    if not file_name: 
+        file_name = os.path.basename(path)
+        file_name = file_name.replace(pathlib.Path(file_name).suffix, '')
+
+        file_name = re.split(r'[`\-=~!@#$%^&*()_+\[\]{};\'\\:"|<,./<>?]', file_name)
+
+        file_name = [i for i in file_name if not i.isdigit()]
+        file_name = max(file_name, key=len)    
+    else :
+        file_name = file_name[0].replace('+','-')
+        
+    if run in file_name : 
+        file_name = file_name.replace(run,'')
+        
+    return(str(file_name))
+
 ############################
 
 def groups(name_file) :
@@ -104,6 +138,12 @@ def groups(name_file) :
     organization['container_3'] = look_for_type_files(name_file)  
     organization['name'] = "/".join(filter(bool, [look_for_type_files(name_file),look_for_sources(name_file),look_for_data(name_file),look_for_run(name_file)]))
     organization['fullname'] = "/".join(filter(bool, [look_for_type_files(name_file),look_for_sources(name_file),look_for_data(name_file),look_for_run(name_file),f_name.replace('+','_')]))
+    
+    organization['night'] = look_for_data(name_file) 
+    organization['run_number'] = look_for_run(name_file) 
+    organization['telescope'] = get_telescope(name_file) 
+    organization['datatype'] = get_source(name_file) 
+        
     return(organization)
 
 ############################
