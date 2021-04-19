@@ -3,7 +3,7 @@ lfn2pfn.py
 
 Default LFN-to-path algorithms for CTA
 """
-import re, os, pathlib, datetime
+import re, os, pathlib, datetime, time, random
 
 
 ############################
@@ -67,6 +67,7 @@ def get_datatype(fileName) :
 
     return(str(matching))
 
+
 ############################
 
 def collection_stats(lfn) :
@@ -90,6 +91,19 @@ def collection_stats(lfn) :
     
     return(file_data)
      
+
+def change_namespace(lfn) :          
+
+    date = re.findall('\d{8}', lfn)
+    runs = re.findall('\d{4}\.', lfn)
+    for run in runs : 
+        new_run = str(random.randint(1000,9999))+'.' 
+        lfn = lfn.replace(run, new_run)
+
+    today = str(time.strftime('%Y%m%d'))
+
+    lfn = os.path.join('/',lfn.replace(date[0], today))
+    return(lfn)
 
 ############################
 
