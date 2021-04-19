@@ -235,7 +235,7 @@ def make_folder_file(lfn, DestRSE) :
         return(lfn)
 
 # function to add to JSON 
-def write_json(data, filename=json_file): 
+def write_json(data, filename='test.json'): 
     with io.open(filename, 'w') as f: 
         json.dump(data, f, ensure_ascii=False, indent=4)
 
