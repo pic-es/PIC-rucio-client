@@ -1,6 +1,7 @@
 Here, there are two script that automates transfers using Rucio software.
 
 1- Create files at a specific endpoint:
+
     [root@rucio03 ~]# python Rucio-Createfiles-client.py --help
     usage: Rucio-Createfiles-client.py [-h] --destRSEs DESTRSES
                                        [--working_folder WORKING_FOLDER] --orgRSE
@@ -30,16 +31,15 @@ Here, there are two script that automates transfers using Rucio software.
       --json_file JSON_FILE, -j JSON_FILE
                             output json file; e.g:test.json
 
+                                       
+2- Repicate the created files accross the datalake:
 
     [root@rucio03 ~]# python Rucio-Client-replication.py -h
     usage: Rucio-Client-replication.py [-h] --destRSEs DESTRSES
                                        [--working_folder WORKING_FOLDER] --orgRSE
                                        ORGRSE --scope SCOPE --account ACCOUNT
                                        [--experiment {None,MAGIC,CTA}]
-                                       [--realistic_path REALISTIC_PATH]
-                                       
-2- Repicate the created files accross the datalake: 
-    Replicate files from an two sites through a Rucio account
+                                       [--realistic_path REALISTIC_PATH] 
 
     optional arguments:
       -h, --help            show this help message and exit
