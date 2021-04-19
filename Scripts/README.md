@@ -31,7 +31,10 @@ Here, there are two script that automates transfers using Rucio software.
       --json_file JSON_FILE, -j JSON_FILE
                             output json file; e.g:test.json
 
-                                       
+Exemple of us :
+
+    [root@rucio03 ~]# python Rucio-Createfiles-client.py --destRSEs PIC-DET-2 --working_folder Server-test --orgRSE ORM-NON-DET --scope test-root --account root --experiment_dump MAGIC
+
 2- Repicate the created files accross the datalake:
 
     [root@rucio03 ~]# python Rucio-Client-replication.py -h
