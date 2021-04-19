@@ -1,5 +1,4 @@
-
-
+Here is a script that automates transfers using Rucio software.
 
     [root@rucio03 ~]# python Rucio-Client-replication.py -h
     usage: Rucio-Client-replication.py [-h] --destRSEs DESTRSES
