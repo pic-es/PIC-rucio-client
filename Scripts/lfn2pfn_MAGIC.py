@@ -2,25 +2,17 @@
 lfn2pfn.py
 Default LFN-to-path algorithms for MAGIC
 """
-import re
-import os
-import pathlib
-from datetime import (
-    datetime,
-    tzinfo,
-    timedelta,
-    timezone,
-)
+import re, os, pathlib, datetime
 
 ############################
 
-def look_for_data(fileName) :
+def look_for_date(fileName) :
     fileName = fileName.replace('/','-')
     fileName = fileName.replace('_','-')
     
     try :
         date = re.search('\d{4}-\d{2}-\d{2}', fileName)
-        date = datetime.strptime(date.group(), '%Y-%m-%d').date()
+        date = datetime.datetime.strptime(date.group(), '%Y-%m-%d').strftime('%Y_%m_%d')
         return(str(date))
     except : 
         pass
@@ -126,25 +118,27 @@ def get_source(path):
 
 ############################
 
-def groups(name_file) :
-    organization = dict();
-
-    f_name = os.path.basename(name_file)
-
-    organization['replica'] = f_name.replace('+','_')
-    organization['dataset_1'] = look_for_run(name_file)
-    organization['container_1'] = look_for_data(name_file)
-    organization['container_2'] = look_for_sources(name_file)
-    organization['container_3'] = look_for_type_files(name_file)  
-    organization['name'] = "/".join(filter(bool, [look_for_type_files(name_file),look_for_sources(name_file),look_for_data(name_file),look_for_run(name_file)]))
-    organization['fullname'] = "/".join(filter(bool, [look_for_type_files(name_file),look_for_sources(name_file),look_for_data(name_file),look_for_run(name_file),f_name.replace('+','_')]))
+def collection_stats(lfn) :
+    file_data = dict();
+    metadata = dict();
     
-    organization['night'] = look_for_data(name_file) 
-    organization['run_number'] = look_for_run(name_file) 
-    organization['telescope'] = get_telescope(name_file) 
-    organization['datatype'] = get_source(name_file) 
-        
-    return(organization)
+    file_name = os.path.basename(lfn)
+    file_data['replica'] = file_name.replace('+','_')
+    file_data['pfn'] = "/".join(filter(bool, [look_for_type_files(lfn),look_for_sources(lfn),look_for_date(lfn),look_for_run(lfn),file_name.replace('+','_')]))
+
+    metadata['night'] = look_for_date(lfn) 
+    metadata['run_number'] = look_for_run(lfn) 
+    metadata['telescope'] = get_telescope(lfn) 
+    metadata['datatype'] = get_source(lfn) 
+
+    file_data['dataset_1'] = look_for_run(lfn)
+    file_data['container_1'] = look_for_date(lfn)
+    file_data['container_2'] = look_for_sources(lfn)
+    file_data['container_3'] = look_for_type_files(lfn) 
+    file_data['replication_collection'] = look_for_type_files(lfn)
+    file_data['metadata'] = metadata
+    
+    return(file_data)
 
 ############################
 
@@ -153,7 +147,7 @@ if __name__ == '__main__':
 
     def test_magic_mapping(lfn):
         """Demonstrate the LFN->PFN mapping"""
-        mapped_pfn = groups(name)
+        mapped_pfn = collection_stats(name)
         print(mapped_pfn)
 
     test_magic_mapping("testing", "root://xrootd.pic.es:1094/pnfs/pic.es/data/escape/rucio/pic_inject/Magic-test/data/M1/OSA/Calibrated/2020/02/03/20200203_M1_10284097.005_D_CrabNebula-W0.40+035.root")
