@@ -2,7 +2,7 @@
 lfn2pfn.py
 Default LFN-to-path algorithms for MAGIC
 """
-import re, os, pathlib, datetime
+import re, os, pathlib, datetime, time
 
 ############################
 
@@ -140,6 +140,25 @@ def collection_stats(lfn) :
     
     return(file_data)
 
+def change_namespace(lfn) :          
+    try:
+        date = re.search('\d{4}_\d{2}_\d{2}', lfn)
+        date = datetime.datetime.strptime(date.group(), '%Y_%m_%d').date()
+        date = date.strftime('%Y_%m_%d')
+        today = str(time.strftime('%Y_%m_%d'))
+        lfn = os.path.join('/',lfn.replace(date, today))
+    except: 
+        pass
+    try:    
+        file_path, file_name = os.path.split(lfn)  
+        file_name = re.split(r'[`\-=~!@#$%^&*()_+\[\]{};\'\\:"|<,./<>?]', file_name)
+        date = datetime.datetime.strptime(file_name[0], "%Y%m%d").date()
+        date = date.strftime('%Y%m%d') 
+        today = str(time.strftime('%Y%m%d'))
+        lfn = os.path.join('/',lfn.replace(date, today))
+    except: 
+        pass
+    return(lfn)
 ############################
 
 

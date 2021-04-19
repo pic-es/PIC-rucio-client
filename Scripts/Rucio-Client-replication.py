@@ -680,10 +680,3 @@ if __name__ == '__main__':
     # RSEs where they have been replicated
 
     json_write(replication_dict)
-
-
-# In[ ]:
-
-
-
-
