@@ -118,15 +118,6 @@ def rucio_rses() :
     for single_rse in list(client.list_rses()) :
         rses_lists.append(single_rse['rse'])
     return(rses_lists)
-    
-def rucio_select_lfn2pfn(lfn, experiment) :
-
-    if experiment.upper() == 'MAGIC':
-        return(magic.collection_stats(lfn))
-    elif experiment.upper() == 'CTA':
-        return(cta.collection_stats(lfn))
-    else : 
-        sys.exit(0)
 
 
 # In[5]:
@@ -294,6 +285,7 @@ if __name__ == '__main__':
     parser.add_argument('--orgRSE', '-o', type=str, required=True, help='hostname for RSE; e.g:PIC-INJECT')
     parser.add_argument('--scope', '-s', type=str, required=True, help='Scope to regisister the files; e.g:test-root')
     parser.add_argument('--account', '-a', type=str, required=True, help='scheme for pfn; e.g:root')
+    parser.add_argument('--number', '-n', type=int, required=True, help='total number of files to be created; e.g:15')
     parser.add_argument('--experiment_dump', '-e', type=str, default='MAGIC', choices=['MAGIC', 'CTA'], help='Choose the experiment dump, e.g: MAGIC_dataset.txt or CTA_dataset.txt')
     parser.add_argument('--json_file', '-j', type=str, default='test.json', help='output json file; e.g:test.json') 
     # Execute the parse_args() method
@@ -310,9 +302,9 @@ if __name__ == '__main__':
     destRSEs = args.destRSEs
     # Experiment file dump
     experiment_dump = args.experiment_dump
-    # experiment_dump = 'CTA_dataset.txt'
     # Json with the created files
     json_file = args.json_file
+    number= args.number
 
     # Gfal Configuration
     gfal = Gfal2Context()
@@ -325,7 +317,6 @@ if __name__ == '__main__':
     params.get_create_parent= True 
     params.timeout = 300
 
-
     # Rucio Configuration
     account= args.account
     didc = DIDClient(account=account)
@@ -336,8 +327,13 @@ if __name__ == '__main__':
     print(json.dumps(client.whoami(), indent=4, sort_keys=True))
     print(json.dumps(client.ping(), indent=4, sort_keys=True))
 
+    if 'MAGIC' in experiment_dump :
+        experiment_dump = 'MAGIC_dataset.txt'           
+    if 'CTA' in experiment_dump : 
+        experiment_dump = 'CTA_dataset.txt'
     ######################################################
 
+    # You would like to define the future destiantion RSE, where your data will be replicated
     for destRSE in destRSEs: 
 
         # Use a predefine folder to create random data 
@@ -345,7 +341,7 @@ if __name__ == '__main__':
         # Check if our test folder still exists 
         gfal.mkdir_rec(orgRSE_endpoint, 775)           
         # Generate dummy random files at PIC-INJECT  
-        lfns = get_random_line(experiment_dump, destRSE, number=15)
+        lfns = get_random_line(experiment_dump, destRSE, number=number)
 
         print(destRSE, 'this is list', len(lfns))
         for x in range(len(lfns)) :
