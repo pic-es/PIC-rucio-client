@@ -374,7 +374,7 @@ class Rucio :
 
         # Make sure your dataset is ephemeral
 
-        self.client.set_metadata(scope=self.myscope, name=carrier_dataset, key='lifetime', value=86400) # 86400 in seconds = 1 day       
+        # self.client.set_metadata(scope=self.myscope, name=carrier_dataset, key='lifetime', value=86400) # 86400 in seconds = 1 day       
 
         # Create a completly new create the RULE: 
         for filemd in filemds :
