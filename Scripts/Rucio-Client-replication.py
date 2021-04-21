@@ -77,7 +77,7 @@ class Rucio :
 
     def rucio_metadata(self, did, key, value) :
         try :
-            set_meta = didc.set_metadata(scope=self.scope, name=did, key=key, value=value, recursive=False)
+            set_meta = self.didc.set_metadata(scope=self.myscope, name=did, key=key, value=value, recursive=False)
             return(True)
         except : 
             return(False)  
