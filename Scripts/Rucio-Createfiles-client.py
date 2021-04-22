@@ -199,8 +199,8 @@ def make_folder_file(lfn, DestRSE) :
     
     # Try to build path + file 
     if lfn is not None : 
-        lfn = str(orgRSE_endpoint) + str(lfn)
-        file_path, file_name = os.path.split(lfn)
+        endpoint_lfn = str(orgRSE_endpoint) + str(lfn)
+        file_path, file_name = os.path.split(endpoint_lfn)
         make_file(file_name, file_path)
         
         dir_name = make_dir(lfn)
