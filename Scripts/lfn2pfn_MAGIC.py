@@ -18,11 +18,11 @@ def look_for_date(fileName) :
         pass
 
     if not date :
-        base, name = os.path.split(name_file)  
+        base, name = os.path.split(fileName)  
 
         file_name = re.split(r'[`\-=~!@#$%^&*()_+\[\]{};\'\\:"|<,./<>?]', name)
 
-        date = datetime.strptime(file_name[0], "%Y%m%d").date()
+        date = datetime.datetime.strptime(file_name[0], "%Y%m%d").date()
         return(str(date))
     
 def look_for_run(fileName) :  
