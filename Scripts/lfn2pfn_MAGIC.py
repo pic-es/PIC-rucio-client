@@ -18,12 +18,8 @@ def look_for_date(fileName) :
         pass
 
     if not date :
-        base, name = os.path.split(fileName)  
-
-        file_name = re.split(r'[`\-=~!@#$%^&*()_+\[\]{};\'\\:"|<,./<>?]', name)
-
-        date = datetime.datetime.strptime(file_name[0], "%Y%m%d").date()
-        return(str(date))
+        date = re.findall('\d{8}', fileName)   
+        return(datetime.datetime.strptime(date[0], '%Y%m%d').strftime('%Y_%m_%d'))
     
 def look_for_run(fileName) :  
 
