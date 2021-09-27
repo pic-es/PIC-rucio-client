@@ -1,16 +1,36 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[18]:
 
 
-from __future__ import absolute_import, division, print_function
+#!/usr/bin/env python
 
-import sys,os,os.path, io,json,linecache,logging,os,os.path,random,re,time,uuid,zipfile,string,pathlib,time,pytz,graphyte,socket,logging, datetime
-
-# Set Rucio virtual environment configuration 
+import sys,os,os.path, io,json,datetime, time, subprocess, traceback,linecache,logging,os,os.path,random,re,time,uuid,zipfile,string,pathlib,time,pytz,graphyte,socket,logging, datetime
 
 os.environ['RUCIO_HOME']=os.path.expanduser('~/rucio')
+
+
+# In[19]:
+
+
+
+from rucio.client import Client
+from rucio.common.exception import Duplicate
+
+account='root'
+auth_type='x509_proxy'
+
+# account=account, auth_type=auth_type
+client = Client(account=account)
+print(client.whoami())
+print(client.ping())
+
+
+# In[20]:
+
+
+# Set Rucio virtual environment configuration 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -52,11 +72,11 @@ from gfal2 import (
 import argparse
 
 
-# In[ ]:
+# In[21]:
 
 
 class Rucio :
-    def __init__(self, myscope, orgRSE, destRSEs, account='bruzzese', working_folder=None, experiment=None, realistic_path=False):
+    def __init__(self, myscope, orgRSE, destRSEs, account='bruzzese', working_folder='None', experiment=None, realistic_path=False):
         
         # Global Rucio variables 
         self.myscope = myscope
@@ -76,11 +96,8 @@ class Rucio :
         self.client = Client(account=self.account)
 
     def rucio_metadata(self, did, key, value) :
-        try :
-            set_meta = self.didc.set_metadata(scope=self.myscope, name=did, key=key, value=value, recursive=False)
-            return(True)
-        except : 
-            return(False)  
+        set_meta = self.didc.set_metadata(scope=self.myscope, name=did, key=key, value=value, recursive=False)
+        return(True)
     
     def rucio_rses(self) :
         rses_lists = list()
@@ -156,7 +173,7 @@ class Rucio :
                                 return(path)
                 return(False)
             except:
-                pass
+                return(False)
 
     def gfal_check_file(self, lfn) :
         try :
@@ -415,7 +432,7 @@ class Rucio :
                         
 
 
-# In[ ]:
+# In[22]:
 
 
 class Find_files :
@@ -473,75 +490,84 @@ class Find_files :
     
 
 
-# In[ ]:
+# In[23]:
 
 
-############################
+# Get UTC time
+class simple_utc(datetime.tzinfo):
+    def tzname(self,**kwargs):
+        return "UTC"
+    def utcoffset(self, dt):
+        return timedelta(0)
+    
+def get_UTC_time() :
+    dt_string = datetime.utcnow().replace(tzinfo=simple_utc()).isoformat()
+    dt_string = str(parser.isoparse(dt_string))
+    return(dt_string)
 
-# Check existence of json File
-
-############################
-
-def json_write(data, filename='Rucio-bkp-test.json'): 
-    with io.open(filename, 'w') as f: 
-        json.dump(data, f, ensure_ascii=False, indent=4)
+def check_transfers_rucio(input_file, output_file):
+    if os.path.isfile(input_file):
+        file = open(input_file, "r+")
+        lines = file.readlines()
+        file.close()
         
-def json_check(json_file_name='Rucio-bkp-test.json') :
-    # checks if file exists
-    if not os.path.isfile(json_file_name) : 
-        logger.debug("Either file is missing or is not readable, creating file...")
-        return(False)
-    
-    elif os.stat(json_file_name).st_size == 0 :
-        os.remove(json_file_name)
-        return(False)
-    
-    elif os.path.isfile(json_file_name) and os.access(json_file_name, os.R_OK) :
-        logger.debug("File exists in JSON and is readable")
-        return(True)
-    
+        count = 0
+        new_file = open(input_file, "w+")
+        n_replicated = []  
+        for line in lines:
+            print("Line{}: {}".format(count, line.replace("\n", "").strip()))
+            parts = line.split() # split line into parts
+            if len(parts) > 1:   # if at least 2 parts/columns
+                lfn = parts[0]
+                destRSE = parts[1]   # print column 2
+                del lines[count]
+                # lines.pop(count)
+                count += 1
+                print(line.replace("\n", ""), destRSE)
+                check = r1.rucio_check_replica(lfn, destRSE=destRSE)
+                print(check)
+                if check != False : ## needs to be changed to False
 
-def stateCheck(json_file='Rucio-bkp-test.json'):
-      
-    with open(json_file) as f : 
-        data_keys  = json.load(f)
-        for file in data_keys :
-            for ele in data_keys[file].values():
-                if isinstance(ele,dict):
-                    for key, value in ele.items():
-                        if key in r1.rses() :
-                            
-                            if 'path' in value:
-                                if value['state'] == 'ALIVE' :
-                                    # Check for deleted files
-                                    try :
-                                        existence = r1.file_exists(value['path'])
-                                        
-                                    # If gfal fails, it means that the file still exists  
-                                    except :
-                                        print('failed')
-                                        dead_state = dict()
-                                        dead_state = {'state': 'DEAD',
-                                                    'deleted': datetime.utcnow().replace(tzinfo=pytz.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-                                                        }
+                    bashCommand = str("gfal-stat " + check)
+                    process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 
-                                        data_keys[file]['Replicated'][key].update(dead_state) 
+                    while True:
+                        output = process.stdout.readline()
+                        if output:
+                            stat = str(output.strip())
+                            #print(stat)
+                            if "Modify" in stat:
+                                stat = stat.replace("b", "").strip().replace("'", "").strip().replace("Modify:", "").strip() 
+                                n_replicated.append(line.replace("\n", "") + '\t' +  str(destRSE) + '\t' + stat) 
+                        result = process.poll()
+                        if result is not None:
+                            break
+        if len(n_replicated) > 0 :
+            dt_string = datetime.datetime.today().strftime('%Y%m%d-%H_%M_%S')
+            make_file_transfer(n_replicated, output_file+'-'+str(destRSE)+'-'+str(dt_string))
 
-                            elif 'state' in value :
-                                # Check completed transference files
-                                if value['state'] == 'REPLICATING' :                                    
-                                    check = r1.check_replica(lfn=file.replace('+','_'), destRSE=key)
-                                    
-                                    #if there's no replica at destiny RSE
-                                    if check != False : 
-                                        
-                                        replication_state = dict()
-                                        replication_state = {'path': check,
-                                                             'copied': datetime.utcnow().replace(tzinfo=pytz.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
-                                                             'state': 'ALIVE'}
-                                        # Update the dictionary with the file properties
-                                        data_keys[file]['Replicated'][key].update(replication_state) 
-        return(data_keys)
+        lines = [s.rstrip() for s in lines] # remove \r
+        lines = list(filter(None, lines)) # remove empty 
+        make_file_transfer(lines, output_file=input_file)
+        
+def make_file_transfer(list_lfn, output_file=r'sample.txt'):
+    
+    print('writing output file at ' + output_file)
+    # Open a file with access and read mode 'a+'
+    file_object = open(output_file, 'a')
+    # Append 'hello' at the end of file
+    
+    for lfn in list_lfn:
+        print(lfn)        
+        file_object.write(lfn+'\n')
+        # Close the file
+    
+    file_object.close()
+
+
+# In[24]:
+
+
 
 ############################
 
@@ -556,11 +582,12 @@ def replication_files_rucio() :
     listOfFiles = l1.scrap_through_dir(r1.rucio_rse_url())
 
     if listOfFiles :
-        # Create a dictionary with the properties for writing a json 
-        result_dict = dict();
+        # Create a list with the properties for writing a text file 
+        all_list_unreplicated = []       
         for destRSE in r1.destRSEs :
             # Create an array for those files that has not been replicated 
-            n_unreplicated = []
+            n_unreplicated = []  
+            list_unreplicated = []  
             for n in range(0,len(listOfFiles)):
                 
                 lfn = str(listOfFiles[n])
@@ -573,17 +600,17 @@ def replication_files_rucio() :
 
                 # Check if file is already is registered at a particular destination RSE
                 print(str(n) + ' - ' + str(len(listOfFiles)) + ' ' + file_name_2 + ' ' + destRSE) 
-                check = r1.rucio_check_replica(lfn=file_name_2, destRSE=destRSE)
+
+                # 1) Get the file stat
+                fileStat = r1.rucio_file_stat(lfn)                
+                check = r1.rucio_check_replica(lfn=fileStat['replica']['name'], destRSE=destRSE)
                 
                 # If it is registered, skip add replica 
                 if check != False : ## needs to be changed to False
                     logger.debug('| - - The FILE %s already have a replica at RSE %s : %s' % (file_name, destRSE, check))
-
+                    print('{} {} already added'.format(fileStat['replica']['name'], destRSE))
                 # Else, if the files has no replica at destination RSE
                 else :
-
-                    # 1) Get the file stat
-                    fileStat = r1.rucio_file_stat(lfn)
                     print(json.dumps(fileStat, indent=4, sort_keys=True))
                     r1.client.add_replicas(rse=r1.orgRSE, files=[fileStat['replica']])
                     
@@ -596,54 +623,38 @@ def replication_files_rucio() :
                     # 3) Create rucio's collections [datasets, & or containers]:
                     r1.rucio_collections(fileStat)
                     
-                    # 4) Add information to Json file :
-                    
-                    temp_dict = dict()
-                    temp_dict[file_name] = {}
-                    temp_dict[file_name]['Properties'] = {**fileStat['replica'], **{'updated': datetime.datetime.utcnow().replace(tzinfo=pytz.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}} 
-                    temp_dict[file_name]['Organization'] = fileStat['collections']
-                    temp_dict[file_name]['Replicated'] = {destRSE : {**{'state': 'REPLICATING'}, **{'registered': datetime.datetime.utcnow().replace(tzinfo=pytz.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}}}
-
-                    # 4) Construct a dictionary 
-                    if file_name in result_dict :   
-                        result_dict[file_name]['Replicated'].update(temp_dict[file_name]['Replicated'])
-                        
-                    # if its is the first entry, add the RSE where it was found : 
-                    elif file_name not in result_dict :
-                        origin = { r1.orgRSE : {
-                        'path': lfn,
-                        'registered': datetime.datetime.utcnow().replace(tzinfo=pytz.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
-                        'state': 'ALIVE',
-                        }}
-                        
-                        temp_dict[file_name]['Replicated'].update(origin)
-                
-                        result_dict[file_name] = temp_dict[file_name]                                          
-                        
                     # 5) Create the Main Replication Rule at Destination RSE
-                    main_rule = r1.rucio_add_rule(destRSE, fileStat['rule'], asynchronous=False)
+                    # main_rule = r1.rucio_add_rule(destRSE, fileStat['rule'], asynchronous=False)
                     logger.debug("| - - - - Getting parameters for rse %s" % destRSE)
 
                     # 6) Create the json array 
 
                     # Finally, add them to a general list 
                     n_unreplicated.append(fileStat)
-                    
+                    list_unreplicated.append(fileStat['replica']['name'] + '\t' +  str(destRSE)) 
+                    all_list_unreplicated.append(fileStat['replica']['name'] + '\t' +  str(destRSE)) 
             logger.debug('Your are going to replicate %s files' % str(len(n_unreplicated)))   
             print('Your are going to replicate %s files' % str(len(n_unreplicated)))
             ## Now, create Dummy rules between the ORIGIN and DESTINATION RSEs  
             if len(n_unreplicated) > 0 :
                 r1.outdated_register_replica(n_unreplicated, destRSE, r1.orgRSE)
 
+                dt_string = datetime.datetime.today().strftime('%Y%m%d-%H_%M_%S')
+                make_file_transfer(list_unreplicated, output_file='MAGIC_replicated'+'-'+str(destRSE)+'-'+str(dt_string))
+                print(len(n_unreplicated), destRSE, r1.orgRSE)
         # Finally return the information of the replicas as a dictionary
-        return(result_dict)
+        return(all_list_unreplicated)
 
 
-# In[4]:
+# In[25]:
 
 
 if __name__ == '__main__':
     
+    # Initialize Rucio class and functions
+    # Create the parser
+     # You could also configure the code to specific parameters
+
     # Initialize Rucio class and functions
     # Create the parser
     parser = argparse.ArgumentParser(add_help=True,
@@ -656,7 +667,9 @@ if __name__ == '__main__':
     parser.add_argument('--account', '-a', type=str, required=True, help='scheme for pfn; e.g:root')
     parser.add_argument('--experiment', '-e', type=str, default=None, choices=['None', 'MAGIC', 'CTA'], help='optional parameter to set lfn2pfn algortithm pfn; e.g:MAGIC, CTA')
     parser.add_argument('--realistic_path', '-p', type=bool, default=False, help='construct realistic path base on the experiment option')
-
+    parser.add_argument('--input_file', '-x', type=str, required=True, help='file s name with the replicated files')
+    parser.add_argument('--output_file', '-y', type=str, required=True, help='prefix file name wih for containing the replication and finish names')
+    
     # Execute the parse_args() method
     args = parser.parse_args()
 
@@ -667,6 +680,8 @@ if __name__ == '__main__':
                working_folder=args.working_folder, experiment=args.experiment,
                realistic_path=args.realistic_path)
     
+    input_file = args.input_file
+    output_file = args.output_file
     # You could also configure the code to specific parameters
     '''
     r1 = Rucio(myscope='test-root', orgRSE='ORM-NON-DET', 
@@ -674,9 +689,19 @@ if __name__ == '__main__':
                account='root', working_folder='Server-test', experiment='MAGIC', realistic_path=True)
     '''
     r1.rucio_replication_parameters()    
-    replication_dict = replication_files_rucio()
-
+    replication_list = replication_files_rucio()
+    if replication_list: 
+        if len(replication_list) > 0 :
+            make_file_transfer(replication_list, output_file=input_file)
+        
     # creates a resulting dictionary with the files found with their respective 
     # RSEs where they have been replicated
+    check_transfers_rucio(input_file, output_file=output_file)
+    
 
-    json_write(replication_dict)
+
+# In[ ]:
+
+
+
+
